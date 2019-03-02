@@ -4,8 +4,7 @@ import com.google.inject.Inject
 import net.rsandor.plaything.user.model.User
 import net.rsandor.plaything.user.repo.UserDao
 import net.rsandor.plaything.user.services.UserService
-import net.rsandor.plaything.user.utils.Failure
-import net.rsandor.plaything.user.utils.Success
+import net.rsandor.plaything.user.utils.Either
 import net.rsandor.plaything.user.utils.Try
 import net.rsandor.plaything.user.web.UserRequest
 import java.util.*
@@ -44,10 +43,10 @@ class UserServiceImpl @Inject constructor(
     override fun delete(id: UUID) = userDao.delete(id)
 
     private fun <T> validateRequestAndThen(userRequest: UserRequest, transform: (UserRequest) -> T): Try<T> {
-        val errors = userValidator.validate(userRequest)
-        return when (errors.count()) {
-            0 -> Success(transform(userRequest))
-            else -> Failure(IllegalArgumentException(errors.joinToString()))
+        val validation = userValidator.validate(userRequest)
+        return when (validation) {
+            is Either.Right -> Try.Success(transform(validation.value))
+            is Either.Left -> Try.Failure(IllegalArgumentException(validation.value.joinToString()))
         }
     }
 }

@@ -8,8 +8,7 @@ import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.*
 import net.rsandor.plaything.user.services.UserService
-import net.rsandor.plaything.user.utils.Failure
-import net.rsandor.plaything.user.utils.Success
+import net.rsandor.plaything.user.utils.Try
 import net.rsandor.plaything.user.utils.UUIDs
 import net.rsandor.plaything.user.web.utils.HttpResponse
 
@@ -27,10 +26,10 @@ class UserRouter @Inject constructor(application: Application, userService: User
                         val response = userService.create(user)
 
                         when (response) {
-                            is Success -> call.respond(HttpStatusCode.Created, HttpResponse.created(response.result))
-                            is Failure -> call.respond(
+                            is Try.Success -> call.respond(HttpStatusCode.Created, HttpResponse.created(response.value))
+                            is Try.Failure -> call.respond(
                                 HttpStatusCode.BadRequest,
-                                HttpResponse.badRequest(response.exceptions.mapNotNull { it.message })
+                                HttpResponse.badRequest(response.exception.message ?: "Unknown error.")
                             )
                         }
 
@@ -54,19 +53,19 @@ class UserRouter @Inject constructor(application: Application, userService: User
                             val update = userId?.let { userService.update(it, request) }
                             when (update) {
                                 null -> call.respond(HttpStatusCode.NotFound, HttpResponse.notFound())
-                                is Success -> {
-                                    when (update.result) {
+                                is Try.Success -> {
+                                    when (update.value) {
                                         null -> call.respond(HttpStatusCode.NoContent)
                                         else -> call.respond(
                                             HttpStatusCode.Created,
-                                            HttpResponse.created(update.result)
+                                            HttpResponse.created(update.value)
                                         )
                                     }
                                 }
-                                is Failure -> {
+                                is Try.Failure -> {
                                     call.respond(
                                         HttpStatusCode.BadRequest,
-                                        HttpResponse.badRequest(update.exceptions.mapNotNull { it.message })
+                                        HttpResponse.badRequest(update.exception.message ?: "Unknown error.")
                                     )
                                 }
                             }
